@@ -1,0 +1,93 @@
+.menu-header {
+    background-color: #ffffff;
+    padding: 15px;
+    position: fixed;
+    width: 100%;
+    z-index: 10;
+    cursor: pointer;
+    transition: top 0.3s ease-in-out;
+    white-space: nowrap;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+}
+
+/* Applies to both p and div inside .menu-header */
+.menu-header p,
+.menu-header div.menu-text {
+    margin: 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #231F20;
+    position: relative;
+}
+
+/* Underline animation */
+.menu-header>p.active::after,
+.menu-header>div.menu-text.active::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: gray;
+}
+
+/* Hover color */
+.menu-header p:hover,
+.menu-header div.menu-text:hover {
+    color: orange;
+}
+
+/* Underline on hover */
+.menu-header>p:hover::after,
+.menu-header>div.menu-text:hover::after {
+    background-color: orange;
+}
+
+/* Active underline */
+.menu-header>p.active::after,
+.menu-header>p.menu-text.active::after,
+.menu-header>div.menu-text.active::after {
+    background-color: gray;
+}
+
+.dropdown-container {
+    position: relative;
+}
+
+/* DROPDOWN STYLING */
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #fef6e4;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    padding: 8px 0;
+    min-width: 130px;
+    z-index: 100;
+    text-align: left;
+}
+
+.dropdown p {
+    padding: 10px 15px;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+    border-bottom: none;
+}
+
+.dropdown p:hover {
+    background-color: #e0e0e0;
+    color: #000;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+}

@@ -1,0 +1,64 @@
+.contact-header {
+    background-color: #336699;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    top: 60px;
+    width: 100%;
+    transition: transform 0.3s ease;
+    z-index: 10;
+}
+
+.contact-header.hidden {
+    transform: translateY(-100%);
+}
+
+.contact-header.visible {
+    transform: translateY(0);
+}
+
+.contact-left {
+    display: flex;
+    gap: 15px;
+    margin-left: 20px;
+}
+
+.social-icon {
+    font-size: 1rem;
+    color: white;
+    cursor: pointer;
+}
+
+.contact-right {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    margin-right: 10px;
+}
+
+.contact-right .separator {
+    color: #ccc;
+    margin: 0 10px;
+}
+
+.appointment-link {
+    color: white;
+    font-weight: bold;
+    text-decoration: none;
+    margin-right: 5px;
+}
+
+.arrow-icon {
+    font-size: 0.7rem;
+}
+
+.appointment-link:hover {
+    text-decoration: underline;
+}
+
+.signupbtn:hover {
+    color: orange;
+}
