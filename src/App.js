@@ -9,6 +9,7 @@ import FAQ from "./FAQ";
 import ContactUs from "./ContactUs";
 import CarUpload from "./CarUpload";
 import CarUploadsData from "./CarUploadsData";
+import LiveBidding from "./LiveBidding";
 import './App.css';
 
 function App() {
@@ -83,6 +84,15 @@ function App() {
         element={
           <Layout>
             <CarUploadsData />
+          </Layout>
+        }
+      />
+
+      <Route
+        path="/LiveBidding"
+        element={
+          <Layout>
+            <LiveBidding />
           </Layout>
         }
       />

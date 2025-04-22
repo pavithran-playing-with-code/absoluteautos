@@ -465,6 +465,129 @@ app.get('/api/caruploads', async (req, res) => {
     }
 });
 
+// Helper function to delete the old file
+const deleteFile = (filePath) => {
+    if (filePath && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath); // Delete the old file
+    }
+};
+
+app.post('/api/update-car-section', async (req, res) => {
+    const { section, data, car_id } = req.body;
+    const connection = db.promise();
+
+    try {
+        let query = '';
+        let values = [];
+
+        if (section === 'vehicleInfo') {
+            query = `
+                UPDATE car_details
+                SET make = ?, model = ?, purchase_year = ?, vin = ?, mileage = ?, car_condition = ?, transmission = ?, drive_type = ?, fuel_type = ?, color = ?
+                WHERE id = ?
+            `;
+            values = [
+                data.make,
+                data.model,
+                data.purchase_year,
+                data.vin,
+                data.mileage,
+                data.car_condition,
+                data.transmission,
+                data.drive_type,
+                data.fuel_type,
+                data.color,
+                car_id
+            ];
+        } else if (section === 'vehicleDetails') {
+            query = `
+                UPDATE car_details
+                SET title_status = ?, accident_history = ?, service_records = ?, vehicle_available_for_inspection = ?, additional_features = ?
+                WHERE id = ?
+            `;
+            values = [
+                data.title_status,
+                data.accident_history,
+                data.service_records,
+                data.vehicle_available_for_inspection,
+                Array.isArray(data.additional_features) ? data.additional_features.join(', ') : data.additional_features,
+                car_id
+            ];
+        }
+        else if (section === 'photos_media') {
+            // Check for existing files and delete if new files are uploaded
+            if (data.exterior_photos) {
+                const oldExteriorPhotos = JSON.parse(data.exterior_photos);
+                oldExteriorPhotos.forEach((oldFilePath) => deleteFile(path.join(__dirname, 'car-uploads', oldFilePath)));
+            }
+            if (data.interior_photos) {
+                const oldInteriorPhotos = JSON.parse(data.interior_photos);
+                oldInteriorPhotos.forEach((oldFilePath) => deleteFile(path.join(__dirname, 'car-uploads', oldFilePath)));
+            }
+            if (data.engine_bay_photo) {
+                const oldEngineBayPhoto = data.engine_bay_photo;
+                deleteFile(path.join(__dirname, 'car-uploads', oldEngineBayPhoto));
+            }
+            if (data.video_walkaround) {
+                const oldVideoWalkaround = data.video_walkaround;
+                deleteFile(path.join(__dirname, 'car-uploads', oldVideoWalkaround));
+            }
+            if (data.documents) {
+                const oldDocuments = JSON.parse(data.documents);
+                oldDocuments.forEach((oldFilePath) => deleteFile(path.join(__dirname, 'car-uploads', oldFilePath)));
+            }
+
+            query = `
+                UPDATE photos_media
+                SET exterior_photos = ?, interior_photos = ?, engine_bay_photo = ?, video_walkaround = ?, documents = ?
+                WHERE car_id = ?
+            `;
+            values = [
+                JSON.stringify(data.exterior_photos),
+                JSON.stringify(data.interior_photos),
+                data.engine_bay_photo,
+                data.video_walkaround,
+                JSON.stringify(data.documents),
+                car_id
+            ];
+        } else
+            if (section === 'bidding_info') {
+                query = `
+                UPDATE bidding_info
+                SET starting_bid = ?, bidding_end_time = ?, buy_now_price = ?, bidding_increment = ?
+                WHERE car_id = ?
+            `;
+                values = [
+                    data.starting_bid,
+                    data.bidding_end_time,
+                    data.buy_now_price,
+                    data.bidding_increment,
+                    car_id
+                ];
+            } else if (section === 'seller_info') {
+                query = `
+                UPDATE seller_info
+                SET seller_name = ?, contact_email = ?, contact_phone = ?, location = ?, seller_available_for_inspection = ?
+                WHERE car_id = ?
+            `;
+                values = [
+                    data.seller_name,
+                    data.contact_email,
+                    data.contact_phone,
+                    data.location,
+                    data.seller_available_for_inspection,
+                    car_id
+                ];
+            }
+
+        await connection.query(query, values);
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('Update error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
 
 app.listen(5000, () => {
     console.log('Server running on http://localhost:5000');

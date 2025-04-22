@@ -85,7 +85,7 @@ const MenuHeader = () => {
 
             <p className="menu-text" onClick={() => handleNavigate('/about')}>About Us</p>
             <p className="menu-text" onClick={() => handleNavigate('/showroom')}>Showroom</p>
-            <p className="menu-text" onClick={() => handleNavigate('/live-bidding')}>Live Bidding</p>
+            <p className={`menu-text ${location.pathname === '/LiveBidding' ? 'active' : ''}`} onClick={() => handleNavigate('/LiveBidding')}>Live Bidding</p>
 
             {isLoggedIn ? (
                 <div

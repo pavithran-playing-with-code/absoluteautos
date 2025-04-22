@@ -7,6 +7,14 @@ const CarUploadsData = () => {
     const [selectedCar, setSelectedCar] = useState(null);
     const [editSection, setEditSection] = useState(''); // To track which section to edit
 
+    const formatToLocalDatetime = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - offset * 60000);
+        return localDate.toISOString().slice(0, 16);  // "YYYY-MM-DDTHH:mm"
+    };
+
     useEffect(() => {
         const loginStatus = localStorage.getItem("isLoggedIn");
         const profileId = localStorage.getItem("profileId");
@@ -57,7 +65,6 @@ const CarUploadsData = () => {
     };
 
     const handleEdit = (section, carId) => {
-        debugger
         const car = carData.find(c => c.car_id === carId);
         setSelectedCar({ ...car });  // Clone to avoid direct mutation
         setEditSection(section);  // Set which section to edit
@@ -67,42 +74,196 @@ const CarUploadsData = () => {
     const handleChange = (e) => {
         const { name, value, type, checked, files } = e.target;
 
-        if (type === 'checkbox') {
-            // If it's a checkbox, handle as an array
-            setSelectedCar(prev => {
-                const updatedFeatures = checked
-                    ? [...prev.additional_features, value]
-                    : prev.additional_features.filter(feature => feature !== value);
+        if (type === 'checkbox' && name === 'additional_features') {
+            let updatedFeatures = selectedCar.additional_features || [];
 
-                return { ...prev, additional_features: updatedFeatures };
-            });
+            if (typeof updatedFeatures === 'string') {
+                updatedFeatures = updatedFeatures.split(',').map(f => f.trim());
+            }
+
+            if (checked) {
+                updatedFeatures = [...updatedFeatures, value];
+            } else {
+                updatedFeatures = updatedFeatures.filter(f => f !== value);
+            }
+
+            setSelectedCar(prev => ({
+                ...prev,
+                additional_features: updatedFeatures
+            }));
         } else if (type === 'file') {
-            // Handle file uploads
-            setSelectedCar(prev => ({ ...prev, [name]: files }));
+            if (name === 'documents') {
+                // Handle document files separately to preserve file paths
+                const filePaths = Array.from(files).map(file => URL.createObjectURL(file));
+                setSelectedCar(prev => ({
+                    ...prev,
+                    [name]: filePaths,
+                }));
+            } else if (name === 'exterior_photos' || name === 'interior_photos') {
+                setSelectedCar(prev => ({
+                    ...prev,
+                    [name]: files, // Set all selected files, not just the first one
+                }));
+            } else {
+                // Handle single image uploads
+                setSelectedCar(prev => ({
+                    ...prev,
+                    [name]: files[0],
+                }));
+            }
         } else {
             setSelectedCar(prev => ({ ...prev, [name]: value }));
         }
     };
 
     const handleModalSave = async () => {
+        if (!selectedCar || !editSection) return;
+        let updatedData = {};
+        let isValid = true; // Flag to track if the form is valid
+        debugger
+        switch (editSection) {
+            case 'vehicleInfo':
+                updatedData = {
+                    make: selectedCar.make,
+                    model: selectedCar.model,
+                    purchase_year: selectedCar.purchase_year,
+                    vin: selectedCar.vin,
+                    mileage: selectedCar.mileage,
+                    car_condition: selectedCar.car_condition,
+                    transmission: selectedCar.transmission,
+                    drive_type: selectedCar.drive_type,
+                    fuel_type: selectedCar.fuel_type,
+                    color: selectedCar.color
+                };
+
+                if (
+                    !updatedData.make ||
+                    !updatedData.model ||
+                    !updatedData.purchase_year ||
+                    !updatedData.vin ||
+                    !updatedData.mileage ||
+                    !updatedData.car_condition ||
+                    !updatedData.transmission ||
+                    !updatedData.drive_type ||
+                    !updatedData.fuel_type ||
+                    !updatedData.color
+                ) {
+                    isValid = false;
+                    alert('Please fill in all required fields for Vehicle Info.');
+                }
+                break;
+
+            case 'vehicleDetails':
+                updatedData = {
+                    title_status: selectedCar.title_status,
+                    accident_history: selectedCar.accident_history,
+                    service_records: selectedCar.service_records,
+                    vehicle_available_for_inspection: selectedCar.vehicle_available_for_inspection,
+                    additional_features: Array.isArray(selectedCar.additional_features)
+                        ? selectedCar.additional_features
+                        : (selectedCar.additional_features?.split(',').map(f => f.trim()) || [])
+                };
+
+                if (
+                    !updatedData.title_status ||
+                    !updatedData.accident_history ||
+                    !updatedData.service_records ||
+                    !updatedData.vehicle_available_for_inspection ||
+                    !updatedData.additional_features.length
+                ) {
+                    isValid = false;
+                    alert('Please fill in all required fields for Vehicle Details.');
+                }
+                break;
+
+            case 'photos_media':
+                updatedData = {
+                    exterior_photos: selectedCar.exterior_photos || [],
+                    interior_photos: selectedCar.interior_photos || [],
+                    engine_bay_photo: selectedCar.engine_bay_photo || '',
+                    video_walkaround: selectedCar.video_walkaround || '',
+                    documents: selectedCar.documents || []
+                };
+
+                if (
+                    !updatedData.exterior_photos.length ||
+                    !updatedData.interior_photos.length ||
+                    !updatedData.engine_bay_photo ||
+                    !updatedData.documents.length
+                ) {
+                    isValid = false;
+                    alert('Please upload all required media, including exterior and interior photos, engine bay photo, and documents.');
+                }
+                break;
+
+            case 'bidding_info':
+                updatedData = {
+                    starting_bid: selectedCar.starting_bid,
+                    bidding_end_time: new Date(selectedCar.bidding_end_time).toISOString().slice(0, 19).replace('T', ' '),
+                    buy_now_price: selectedCar.buy_now_price,
+                    bidding_increment: selectedCar.bidding_increment
+                };
+
+                if (
+                    !updatedData.starting_bid ||
+                    !updatedData.bidding_end_time ||
+                    !updatedData.buy_now_price ||
+                    !updatedData.bidding_increment
+                ) {
+                    isValid = false;
+                    alert('Please fill in all required fields for Bidding Info.');
+                }
+                break;
+
+            case 'seller_info':
+                updatedData = {
+                    seller_name: selectedCar.seller_name,
+                    contact_email: selectedCar.contact_email,
+                    contact_phone: selectedCar.contact_phone,
+                    location: selectedCar.location,
+                    seller_available_for_inspection: selectedCar.seller_available_for_inspection
+                };
+
+                if (
+                    !updatedData.seller_name ||
+                    !updatedData.contact_email ||
+                    !updatedData.contact_phone ||
+                    !updatedData.location ||
+                    !updatedData.seller_available_for_inspection
+                ) {
+                    isValid = false;
+                    alert('Please fill in all required fields for Seller Info.');
+                }
+                break;
+
+
+            default:
+                return;
+        }
+
+        if (!isValid) return;
+
         try {
-            const response = await fetch(`http://localhost:5000/api/updatecar/${selectedCar.car_id}`, {
-                method: 'PUT',
+            const response = await fetch('http://localhost:5000/api/update-car-section', {
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(selectedCar)
+                body: JSON.stringify({
+                    section: editSection,
+                    data: updatedData,
+                    car_id: selectedCar.car_id
+                })
             });
 
-            if (response.ok) {
-                alert("Car info updated!");
-                setShowModal(false);
-                fetchCarUploads(); // Refresh table
-            } else {
-                alert("Failed to update");
-            }
-        } catch (err) {
-            console.error("Error updating car:", err);
+            if (!response.ok) throw new Error('Failed to update');
+
+            alert('Update successful!');
+            fetchCarUploads();
+            setShowModal(false);
+        } catch (error) {
+            console.error('Error updating data:', error);
+            alert('Error updating data');
         }
     };
 
@@ -116,183 +277,192 @@ const CarUploadsData = () => {
 
     return (
         <div className="car-uploads-container">
-            <button style={{ marginLeft: "95%" }} onClick={() => handleDelete(carData.car_id)} className="delete-btn">Delete</button>
+            {/* Vehicle Info - Full Width */}
+            <div className="car-uploads-grid">
+                {/* Vehicle Info Table */}
+                <div className="car-table full-width">
+                    <h3>Vehicle Info</h3>
+                    <table className="car-uploads-table">
+                        <thead>
+                            <tr>
+                                <th>Make</th>
+                                <th>Model</th>
+                                <th>Purchase Year</th>
+                                <th>VIN</th>
+                                <th>Mileage</th>
+                                <th>Condition</th>
+                                <th>Transmission</th>
+                                <th>Drive Type</th>
+                                <th>Fuel Type</th>
+                                <th>Color</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {carData.map(car => (
+                                <tr key={car.car_id}>
+                                    <td>{car.make}</td>
+                                    <td>{car.model}</td>
+                                    <td>{car.purchase_year}</td>
+                                    <td>{car.vin}</td>
+                                    <td>{car.mileage}</td>
+                                    <td>{car.car_condition}</td>
+                                    <td>{car.transmission}</td>
+                                    <td>{car.drive_type}</td>
+                                    <td>{car.fuel_type}</td>
+                                    <td>{car.color}</td>
+                                    <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
+                                        <button onClick={() => handleEdit('vehicleInfo', car.car_id)} className="edit-btn">Edit</button>
+                                        <button onClick={() => handleDelete(car.car_id)} className="delete-btn">Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-            {carData.map(car => (
-                <React.Fragment key={car.car_id}>
-                    {/* Vehicle Info - Full Width */}
-                    <div className="car-uploads-grid">
-                        <div className="car-table full-width">
-                            <h3>Vehicle Info</h3>
-                            <table className="car-uploads-table">
-                                <thead>
-                                    <tr>
-                                        <th>Make</th>
-                                        <th>Model</th>
-                                        <th>Purchase Year</th>
-                                        <th>VIN</th>
-                                        <th>Mileage</th>
-                                        <th>Condition</th>
-                                        <th>Transmission</th>
-                                        <th>Drive Type</th>
-                                        <th>Fuel Type</th>
-                                        <th>Color</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>{car.make}</td>
-                                        <td>{car.model}</td>
-                                        <td>{car.purchase_year}</td>
-                                        <td>{car.vin}</td>
-                                        <td>{car.mileage}</td>
-                                        <td>{car.car_condition}</td>
-                                        <td>{car.transmission}</td>
-                                        <td>{car.drive_type}</td>
-                                        <td>{car.fuel_type}</td>
-                                        <td>{car.color}</td>
-                                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
-                                            <button onClick={() => handleEdit('vehicleInfo', car.car_id)} className="edit-btn">Edit Vehicle Info</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            {/* Vehicle Details and Photos - Two Columns Below */}
+            <div className="two-column-section">
+                <div className="car-table">
+                    <h3>Vehicle Details</h3>
+                    <table className="car-uploads-table">
+                        <thead>
+                            <tr>
+                                <th>Title Status</th>
+                                <th>Accident History</th>
+                                <th>Additional Features</th>
+                                <th>Service Records</th>
+                                <th>Available for Inspection</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {carData.map(car => (
+                                <tr>
+                                    <td>{car.title_status}</td>
+                                    <td>{car.accident_history}</td>
+                                    <td>{car.additional_features}</td>
+                                    <td>{car.service_records}</td>
+                                    <td>{car.vehicle_available_for_inspection}</td>
+                                    <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
+                                        <button onClick={() => handleEdit('vehicleDetails', car.car_id)} className="edit-btn">Edit</button>
+                                        <button onClick={() => handleDelete(car.car_id)} className="delete-btn">Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-                    {/* Vehicle Details and Photos - Two Columns Below */}
-                    <div className="two-column-section">
-                        <div className="car-table">
-                            <h3>Vehicle Details</h3>
-                            <table className="car-uploads-table">
-                                <thead>
-                                    <tr>
-                                        <th>Title Status</th>
-                                        <th>Accident History</th>
-                                        <th>Additional Features</th>
-                                        <th>Service Records</th>
-                                        <th>Available for Inspection</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>{car.title_status}</td>
-                                        <td>{car.accident_history}</td>
-                                        <td>{car.additional_features}</td>
-                                        <td>{car.service_records}</td>
-                                        <td>{car.vehicle_available_for_inspection}</td>
-                                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
-                                            <button onClick={() => handleEdit('vehicleDetails', car.car_id)} className="edit-btn">Edit Vehicle Details</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                <div className="car-table">
+                    <h3>Photos & Media</h3>
+                    <table className="car-uploads-table">
+                        <thead>
+                            <tr>
+                                <th>Exterior</th>
+                                <th>Interior</th>
+                                <th>Engine Bay</th>
+                                <th>Walkaround</th>
+                                <th>Documents</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {carData.map(car => (
+                                <tr>
+                                    <td>
+                                        {car.exterior_photos && JSON.parse(car.exterior_photos).map((url, i) => (
+                                            <div key={i}><a href={`http://localhost:5000${url}`} target="_blank">View {i + 1}</a></div>
+                                        ))}
+                                    </td>
+                                    <td>
+                                        {car.interior_photos && JSON.parse(car.interior_photos).map((url, i) => (
+                                            <div key={i}><a href={`http://localhost:5000${url}`} target="_blank">View {i + 1}</a></div>
+                                        ))}
+                                    </td>
+                                    <td>{car.engine_bay_photo && <a href={`http://localhost:5000${car.engine_bay_photo}`} target="_blank">View</a>}</td>
+                                    <td>{car.video_walkaround && <a href={`http://localhost:5000${car.video_walkaround}`} target="_blank">View</a>}</td>
+                                    <td>
+                                        {car.documents && JSON.parse(car.documents).map((url, i) => (
+                                            <div key={i}><a href={`http://localhost:5000${url}`} target="_blank">Doc {i + 1}</a></div>
+                                        ))}
+                                    </td>
+                                    <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
+                                        <button onClick={() => handleEdit('photos_media', car.car_id)} className="edit-btn">Edit</button>
+                                        <button onClick={() => handleDelete(car.car_id)} className="delete-btn">Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-                        <div className="car-table">
-                            <h3>Photos & Media</h3>
-                            <table className="car-uploads-table">
-                                <thead>
-                                    <tr>
-                                        <th>Exterior</th>
-                                        <th>Interior</th>
-                                        <th>Engine Bay</th>
-                                        <th>Walkaround</th>
-                                        <th>Documents</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            {car.exterior_photos && JSON.parse(car.exterior_photos).map((url, i) => (
-                                                <div key={i}><a href={`http://localhost:5000${url}`} target="_blank">View {i + 1}</a></div>
-                                            ))}
-                                        </td>
-                                        <td>
-                                            {car.interior_photos && JSON.parse(car.interior_photos).map((url, i) => (
-                                                <div key={i}><a href={`http://localhost:5000${url}`} target="_blank">View {i + 1}</a></div>
-                                            ))}
-                                        </td>
-                                        <td>{car.engine_bay_photo && <a href={`http://localhost:5000${car.engine_bay_photo}`} target="_blank">View</a>}</td>
-                                        <td>{car.video_walkaround && <a href={`http://localhost:5000${car.video_walkaround}`} target="_blank">View</a>}</td>
-                                        <td>
-                                            {car.documents && JSON.parse(car.documents).map((url, i) => (
-                                                <div key={i}><a href={`http://localhost:5000${url}`} target="_blank">Doc {i + 1}</a></div>
-                                            ))}
-                                        </td>
-                                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
-                                            <button onClick={() => handleEdit('photos_media', car.car_id)} className="edit-btn">Edit Photos</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            {/* Bidding Info & Seller Info - Below Again */}
+            <div className="two-column-section">
+                {/* Bidding Info */}
+                <div className="car-table">
+                    <h3>Bidding Info</h3>
+                    <table className="car-uploads-table">
+                        <thead>
+                            <tr>
+                                <th>Starting Bid</th>
+                                <th>Buy Now Price</th>
+                                <th>Bidding End</th>
+                                <th>Increment</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {carData.map(car => (
+                                <tr>
+                                    <td>${car.starting_bid}</td>
+                                    <td>${car.buy_now_price}</td>
+                                    <td>{car.bidding_end_time}</td>
+                                    <td>{car.bidding_increment}</td>
+                                    <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
+                                        <button onClick={() => handleEdit('bidding_info', car.car_id)} className="edit-btn">Edit</button>
+                                        <button onClick={() => handleDelete(car.car_id)} className="delete-btn">Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-                    {/* Bidding Info & Seller Info - Below Again */}
-                    <div className="two-column-section">
-                        {/* Bidding Info */}
-                        <div className="car-table">
-                            <h3>Bidding Info</h3>
-                            <table className="car-uploads-table">
-                                <thead>
-                                    <tr>
-                                        <th>Starting Bid</th>
-                                        <th>Buy Now Price</th>
-                                        <th>Bidding End</th>
-                                        <th>Increment</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>${car.starting_bid}</td>
-                                        <td>${car.buy_now_price}</td>
-                                        <td>{car.bidding_end_time}</td>
-                                        <td>{car.bidding_increment}</td>
-                                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
-                                            <button onClick={() => handleEdit('bidding_info', car.car_id)} className="edit-btn">Edit Photos</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Seller Info */}
-                        <div className="car-table">
-                            <h3>Seller Info</h3>
-                            <table className="car-uploads-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Location</th>
-                                        <th>Inspection</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>{car.seller_name}</td>
-                                        <td>{car.contact_email}</td>
-                                        <td>{car.contact_phone}</td>
-                                        <td>{car.location}</td>
-                                        <td>{car.seller_available_for_inspection}</td>
-                                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
-                                            <button onClick={() => handleEdit('seller_info', car.car_id)} className="edit-btn">Edit Photos</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </React.Fragment>
-            ))}
-
+                {/* Seller Info */}
+                <div className="car-table">
+                    <h3>Seller Info</h3>
+                    <table className="car-uploads-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Location</th>
+                                <th>Inspection</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {carData.map(car => (
+                                <tr>
+                                    <td>{car.seller_name}</td>
+                                    <td>{car.contact_email}</td>
+                                    <td>{car.contact_phone}</td>
+                                    <td>{car.location}</td>
+                                    <td>{car.seller_available_for_inspection}</td>
+                                    <td style={{ whiteSpace: "nowrap", display: "flex", gap: "5px", justifyContent: "center" }}>
+                                        <button onClick={() => handleEdit('seller_info', car.car_id)} className="edit-btn">Edit</button>
+                                        <button onClick={() => handleDelete(car.car_id)} className="delete-btn">Delete</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             {showModal && selectedCar && (
                 <div className="modal show fade d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog">
@@ -587,6 +757,7 @@ const CarUploadsData = () => {
                                         <form className="modal-form">
                                             <div className="row g-4">
 
+                                                {/* Exterior Photos */}
                                                 <div className="col-md-12">
                                                     <label className="form-label">Exterior Photos</label>
                                                     <input
@@ -596,10 +767,33 @@ const CarUploadsData = () => {
                                                         multiple
                                                         className="form-control"
                                                         onChange={handleChange}
-                                                        required
                                                     />
+                                                    {selectedCar?.exterior_photos && (
+                                                        <div className="mt-2 d-flex gap-2 flex-wrap">
+                                                            {(typeof selectedCar.exterior_photos === 'string'
+                                                                ? JSON.parse(selectedCar.exterior_photos)
+                                                                : Array.from(selectedCar.exterior_photos)
+                                                            ).map((item, idx) => {
+                                                                const src = typeof item === 'string'
+                                                                    ? `http://localhost:5000${item}`
+                                                                    : URL.createObjectURL(item);
+
+                                                                return (
+                                                                    <img
+                                                                        key={idx}
+                                                                        src={src}
+                                                                        alt="Exterior"
+                                                                        width={100}
+                                                                        height={70}
+                                                                        style={{ objectFit: 'cover', borderRadius: '8px' }}
+                                                                    />
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
 
+                                                {/* Interior Photos */}
                                                 <div className="col-md-12">
                                                     <label className="form-label">Interior Photos</label>
                                                     <input
@@ -609,10 +803,33 @@ const CarUploadsData = () => {
                                                         multiple
                                                         className="form-control"
                                                         onChange={handleChange}
-                                                        required
                                                     />
+                                                    {selectedCar?.interior_photos && (
+                                                        <div className="mt-2 d-flex gap-2 flex-wrap">
+                                                            {(typeof selectedCar.interior_photos === 'string'
+                                                                ? JSON.parse(selectedCar.interior_photos)
+                                                                : Array.from(selectedCar.interior_photos)
+                                                            ).map((item, idx) => {
+                                                                const src = typeof item === 'string'
+                                                                    ? `http://localhost:5000${item}`
+                                                                    : URL.createObjectURL(item);
+
+                                                                return (
+                                                                    <img
+                                                                        key={idx}
+                                                                        src={src}
+                                                                        alt="Interior"
+                                                                        width={100}
+                                                                        height={70}
+                                                                        style={{ objectFit: 'cover', borderRadius: '8px' }}
+                                                                    />
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
 
+                                                {/* Engine Bay Photo */}
                                                 <div className="col-md-12">
                                                     <label className="form-label">Engine Bay Photo</label>
                                                     <input
@@ -621,10 +838,24 @@ const CarUploadsData = () => {
                                                         accept="image/*"
                                                         className="form-control"
                                                         onChange={handleChange}
-                                                        required
                                                     />
+                                                    {selectedCar?.engine_bay_photo && (
+                                                        <div className="mt-2">
+                                                            <img
+                                                                src={typeof selectedCar.engine_bay_photo === 'string' ?
+                                                                    `http://localhost:5000${selectedCar.engine_bay_photo}` :
+                                                                    URL.createObjectURL(selectedCar.engine_bay_photo)
+                                                                }
+                                                                alt="Engine Bay"
+                                                                width={100}
+                                                                height={70}
+                                                                style={{ objectFit: 'cover', borderRadius: '8px' }}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
 
+                                                {/* Video Walkaround */}
                                                 <div className="col-md-12">
                                                     <label className="form-label">Video Walkaround (optional)</label>
                                                     <input
@@ -634,8 +865,19 @@ const CarUploadsData = () => {
                                                         className="form-control"
                                                         onChange={handleChange}
                                                     />
+                                                    {selectedCar?.video_walkaround && (
+                                                        <div className="mt-2">
+                                                            <video
+                                                                src={`http://localhost:5000${selectedCar.video_walkaround}`}
+                                                                width={200}
+                                                                height={150}
+                                                                controls
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
 
+                                                {/* Vehicle Documents */}
                                                 <div className="col-md-12">
                                                     <label className="form-label">Vehicle Documents</label>
                                                     <input
@@ -646,6 +888,26 @@ const CarUploadsData = () => {
                                                         className="form-control"
                                                         onChange={handleChange}
                                                     />
+                                                    {selectedCar?.documents && (
+                                                        <div className="mt-2">
+                                                            {Array.isArray(selectedCar.documents) &&
+                                                                selectedCar.documents.map((docPath, idx) => (
+                                                                    <div key={idx}>
+                                                                        {typeof docPath === 'string' ? (
+                                                                            <a
+                                                                                href={docPath.startsWith('http') ? docPath : `http://localhost:5000${docPath}`}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                            >
+                                                                                {docPath.split('/').pop()}
+                                                                            </a>
+                                                                        ) : (
+                                                                            <span>Invalid document path</span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                             </div>
@@ -677,7 +939,7 @@ const CarUploadsData = () => {
                                                         type="datetime-local"
                                                         className="form-control"
                                                         name="bidding_end_time"
-                                                        value={selectedCar?.bidding_end_time || ''}
+                                                        value={formatToLocalDatetime(selectedCar?.bidding_end_time)}
                                                         onChange={handleChange}
                                                         required
                                                     />
