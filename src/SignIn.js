@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import carBg from './asset/car-bg.png';
 
 const SignIn = () => {
@@ -30,14 +31,22 @@ const SignIn = () => {
 
             if (result.success) {
                 localStorage.setItem("isLoggedIn", "true");
-                localStorage.setItem("profileId", result.profileId); // ✅ Store profileId
+                localStorage.setItem("profileId", result.profileId);
                 window.location.href = "/home";
             } else {
-                alert('Error: ' + result.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Login Failed',
+                    text: result.message,
+                });
             }
         } catch (error) {
             console.error('Login failed', error);
-            alert('Server error');
+            Swal.fire({
+                icon: 'error',
+                title: 'Server Error',
+                text: 'Something went wrong while connecting to the server.',
+            });
         }
     };
 

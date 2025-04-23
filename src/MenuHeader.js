@@ -14,33 +14,38 @@ const MenuHeader = () => {
     const location = useLocation();
 
     useEffect(() => {
-        const loginStatus = localStorage.getItem("isLoggedIn");
-        setIsLoggedIn(loginStatus === "true");
+        const loginStatus = localStorage.getItem("isLoggedIn") === "true";
+        setIsLoggedIn(loginStatus);
 
-        const profileId = localStorage.getItem("profileId");
+        if (loginStatus) {
+            const profileId = localStorage.getItem("profileId");
 
-        if (loginStatus === "true" && profileId) {
-            fetch('http://localhost:5000/api/access_level', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId: profileId })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const accessLevel = data.accessLevel;
-                        setAccessLevel(accessLevel)
-                    } else {
-                        console.error("Failed to fetch access level:", data.message);
-                    }
+            if (profileId) {
+                fetch('http://localhost:5000/api/access_level', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ userId: profileId })
                 })
-                .catch(error => {
-                    console.error("Error fetching access level:", error);
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            setAccessLevel(data.accessLevel);
+                        } else {
+                            console.error("Failed to fetch access level:", data.message);
+                            setAccessLevel(null); // reset
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching access level:", error);
+                        setAccessLevel(null); // reset
+                    });
+            }
+        } else {
+            setAccessLevel(null); // reset if not logged in
         }
-    }, []);
+    }, [location]);  // ⬅️ Re-run when route changes    
 
     const handleScroll = () => {
         const currentScrollY = window.scrollY;
@@ -62,6 +67,7 @@ const MenuHeader = () => {
     const handleSignOut = () => {
         localStorage.clear();
         setIsLoggedIn(false);
+        setAccessLevel(null);
         navigate('/signin');
     };
 
@@ -83,7 +89,7 @@ const MenuHeader = () => {
                 </>
             )}
 
-            <p className="menu-text" onClick={() => handleNavigate('/about')}>About Us</p>
+            <p className={`menu-text ${location.pathname === '/AboutUs' ? 'active' : ''}`} onClick={() => handleNavigate('/AboutUs')}>About Us</p>
             <p className="menu-text" onClick={() => handleNavigate('/showroom')}>Showroom</p>
             <p className={`menu-text ${location.pathname === '/LiveBidding' ? 'active' : ''}`} onClick={() => handleNavigate('/LiveBidding')}>Live Bidding</p>
 

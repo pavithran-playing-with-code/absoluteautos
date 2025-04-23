@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 import './Profile.css';
 
 function Profile() {
@@ -44,11 +45,19 @@ function Profile() {
         const profileId = localStorage.getItem("profileId");
 
         if (!currentPassword || !newPassword || !confirmPassword) {
-            return alert('Please fill all password fields.');
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Missing Fields',
+                text: 'Please fill all password fields.',
+            });
         }
 
         if (newPassword !== confirmPassword) {
-            return alert('New password and confirm password do not match.');
+            return Swal.fire({
+                icon: 'error',
+                title: 'Mismatch',
+                text: 'New password and confirm password do not match.',
+            });
         }
 
         // Verify current password with backend using ID
@@ -60,7 +69,11 @@ function Profile() {
 
         const verifyResult = await verifyRes.json();
         if (!verifyResult.success) {
-            return alert('Existing password is incorrect.');
+            return Swal.fire({
+                icon: 'error',
+                title: 'Incorrect Password',
+                text: 'Existing password is incorrect.',
+            });
         }
 
         // If correct, update password using ID
@@ -72,10 +85,18 @@ function Profile() {
 
         const updateResult = await updatePassRes.json();
         if (updateResult.success) {
-            alert('Password updated successfully!');
+            await Swal.fire({
+                icon: 'success',
+                title: 'Updated',
+                text: 'Password updated successfully!',
+            });
             window.location.reload();
         } else {
-            alert('Error updating password.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Update Failed',
+                text: 'Error updating password.',
+            });
         }
     };
 
@@ -118,14 +139,24 @@ function Profile() {
 
         const response = await res.json();
         if (response.success) {
-            alert('Profile data updated successfully!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Profile data updated successfully!',
+            });
             window.location.reload();
         }
     };
 
     const handleUpload = async () => {
         const profileId = localStorage.getItem('profileId');
-        if (!profileId) return alert('Please save the profile first.');
+        if (!profileId) {
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Profile Not Saved',
+                text: 'Please save the profile first.',
+            });
+        }
 
         const form = formRef.current;
         const fileInputs = form.querySelectorAll('input[type="file"]');
@@ -147,9 +178,13 @@ function Profile() {
 
         const result = await res.json();
         if (result.success) {
-            alert('Documents uploaded successfully!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Upload Complete',
+                text: 'Documents uploaded successfully!',
+            });
             window.location.reload();
-        }        
+        }
     };
 
     const toBase64 = (file) =>

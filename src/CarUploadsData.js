@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 import './CarUploadsData.css';
 
 const CarUploadsData = () => {
@@ -92,24 +93,10 @@ const CarUploadsData = () => {
                 additional_features: updatedFeatures
             }));
         } else if (type === 'file') {
-            if (name === 'documents') {
-                // Handle document files separately to preserve file paths
-                const filePaths = Array.from(files).map(file => URL.createObjectURL(file));
-                setSelectedCar(prev => ({
-                    ...prev,
-                    [name]: filePaths,
-                }));
-            } else if (name === 'exterior_photos' || name === 'interior_photos') {
-                setSelectedCar(prev => ({
-                    ...prev,
-                    [name]: files, // Set all selected files, not just the first one
-                }));
+            if (e.target.multiple) {
+                setSelectedCar((prev) => ({ ...prev, [name]: Array.from(files) }));
             } else {
-                // Handle single image uploads
-                setSelectedCar(prev => ({
-                    ...prev,
-                    [name]: files[0],
-                }));
+                setSelectedCar((prev) => ({ ...prev, [name]: files[0] }));
             }
         } else {
             setSelectedCar(prev => ({ ...prev, [name]: value }));
@@ -120,7 +107,7 @@ const CarUploadsData = () => {
         if (!selectedCar || !editSection) return;
         let updatedData = {};
         let isValid = true; // Flag to track if the form is valid
-        debugger
+
         switch (editSection) {
             case 'vehicleInfo':
                 updatedData = {
@@ -149,7 +136,11 @@ const CarUploadsData = () => {
                     !updatedData.color
                 ) {
                     isValid = false;
-                    alert('Please fill in all required fields for Vehicle Info.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Fields',
+                        text: 'Please fill in all required fields for Vehicle Info.',
+                    });
                 }
                 break;
 
@@ -172,30 +163,49 @@ const CarUploadsData = () => {
                     !updatedData.additional_features.length
                 ) {
                     isValid = false;
-                    alert('Please fill in all required fields for Vehicle Details.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Fields',
+                        text: 'Please fill in all required fields for Vehicle Details.',
+                    });
                 }
                 break;
-
             case 'photos_media':
-                updatedData = {
-                    exterior_photos: selectedCar.exterior_photos || [],
-                    interior_photos: selectedCar.interior_photos || [],
-                    engine_bay_photo: selectedCar.engine_bay_photo || '',
-                    video_walkaround: selectedCar.video_walkaround || '',
-                    documents: selectedCar.documents || []
-                };
+                const requiredMediaFields = [
+                    'exterior_photos',
+                    'interior_photos',
+                    'documents',
+                    'engine_bay_photo'
+                ];
+                debugger
+                const missingFields = requiredMediaFields.filter(field => {
+                    const files = selectedCar[field];
+                    return !files || (Array.isArray(files) && files.length === 0);
+                });
 
-                if (
-                    !updatedData.exterior_photos.length ||
-                    !updatedData.interior_photos.length ||
-                    !updatedData.engine_bay_photo ||
-                    !updatedData.documents.length
-                ) {
+                if (missingFields.length > 0) {
                     isValid = false;
-                    alert('Please upload all required media, including exterior and interior photos, engine bay photo, and documents.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Media',
+                        text: `Please upload all required media files: ${missingFields.join(', ').replace(/_/g, ' ')}.`
+                    });
+                    return;
                 }
-                break;
 
+                // If all required fields are valid, proceed to upload
+                const result = await uploadMediaFiles(selectedCar.car_id, selectedCar);
+                if (!result.success) throw new Error('Failed to upload media');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Media upload successful!',
+                });
+
+                fetchCarUploads();
+                setShowModal(false);
+                return;
             case 'bidding_info':
                 updatedData = {
                     starting_bid: selectedCar.starting_bid,
@@ -211,7 +221,11 @@ const CarUploadsData = () => {
                     !updatedData.bidding_increment
                 ) {
                     isValid = false;
-                    alert('Please fill in all required fields for Bidding Info.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Fields',
+                        text: 'Please fill in all required fields for Bidding Info.',
+                    });
                 }
                 break;
 
@@ -232,7 +246,11 @@ const CarUploadsData = () => {
                     !updatedData.seller_available_for_inspection
                 ) {
                     isValid = false;
-                    alert('Please fill in all required fields for Seller Info.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Fields',
+                        text: 'Please fill in all required fields for Seller Info.',
+                    });
                 }
                 break;
 
@@ -258,21 +276,82 @@ const CarUploadsData = () => {
 
             if (!response.ok) throw new Error('Failed to update');
 
-            alert('Update successful!');
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Update successful!',
+            });
+
             fetchCarUploads();
             setShowModal(false);
         } catch (error) {
             console.error('Error updating data:', error);
-            alert('Error updating data');
+            Swal.fire({
+                icon: 'error',
+                title: 'Update Failed',
+                text: 'Error updating data.',
+            });
         }
     };
 
-    const handleDelete = (carId) => {
-        try {
-            alert(carId);
-        } catch (err) {
-            console.error("Error updating car:", err);
+    const uploadMediaFiles = async (car_id, mediaData) => {
+        const formData = new FormData();
+        formData.append("car_id", car_id);
+
+        const fields = ['exterior_photos', 'interior_photos', 'documents', 'engine_bay_photo', 'video_walkaround'];
+
+        for (let field of fields) {
+            const files = mediaData[field];
+            if (Array.isArray(files)) {
+                files.forEach(file => {
+                    if (file instanceof File) {
+                        formData.append(field, file);
+                    }
+                });
+            } else if (files instanceof File) {
+                formData.append(field, files);
+            }
         }
+
+        const response = await fetch('http://localhost:5000/api/upload-car-media', {
+            method: 'POST',
+            body: formData
+        });
+
+        return response.json();
+    };
+
+    const handleDelete = (carId) => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This will delete the entire car's data including vehicle info, details, photos, and more!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // API call to delete the car and related info
+                fetch(`http://localhost:5000/api/delete-car/${carId}`, {
+                    method: 'DELETE',
+                })
+                    .then((res) => res.json())
+                    .then((data) => {
+                        if (data.success) {
+                            Swal.fire('Deleted!', 'Car and related info has been deleted.', 'success');
+                            // Update frontend UI (remove from carData)
+                            setCarData(prev => prev.filter(car => car.car_id !== carId));
+                        } else {
+                            Swal.fire('Error!', 'Something went wrong while deleting.', 'error');
+                        }
+                    })
+                    .catch((err) => {
+                        console.error("Error deleting car:", err);
+                        Swal.fire('Error!', 'Failed to connect to server.', 'error');
+                    });
+            }
+        });
     };
 
     return (
@@ -783,6 +862,7 @@ const CarUploadsData = () => {
                                                                         key={idx}
                                                                         src={src}
                                                                         alt="Exterior"
+                                                                        multiple
                                                                         width={100}
                                                                         height={70}
                                                                         style={{ objectFit: 'cover', borderRadius: '8px' }}
@@ -819,6 +899,7 @@ const CarUploadsData = () => {
                                                                         key={idx}
                                                                         src={src}
                                                                         alt="Interior"
+                                                                        multiple
                                                                         width={100}
                                                                         height={70}
                                                                         style={{ objectFit: 'cover', borderRadius: '8px' }}
@@ -890,22 +971,28 @@ const CarUploadsData = () => {
                                                     />
                                                     {selectedCar?.documents && (
                                                         <div className="mt-2">
-                                                            {Array.isArray(selectedCar.documents) &&
-                                                                selectedCar.documents.map((docPath, idx) => (
-                                                                    <div key={idx}>
-                                                                        {typeof docPath === 'string' ? (
-                                                                            <a
-                                                                                href={docPath.startsWith('http') ? docPath : `http://localhost:5000${docPath}`}
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                            >
-                                                                                {docPath.split('/').pop()}
-                                                                            </a>
-                                                                        ) : (
-                                                                            <span>Invalid document path</span>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
+                                                            {(typeof selectedCar.documents === 'string'
+                                                                ? JSON.parse(selectedCar.documents)
+                                                                : Array.isArray(selectedCar.documents)
+                                                                    ? selectedCar.documents
+                                                                    : []
+                                                            ).map((docPath, idx) => (
+                                                                <div key={idx}>
+                                                                    {typeof docPath === 'string' ? (
+                                                                        <a
+                                                                            href={docPath.startsWith('http') ? docPath : `http://localhost:5000${docPath}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                        >
+                                                                            {docPath.split('/').pop()}
+                                                                        </a>
+                                                                    ) : docPath instanceof File ? (
+                                                                        <span>{docPath.name}</span>
+                                                                    ) : (
+                                                                        <span>Invalid document</span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     )}
                                                 </div>

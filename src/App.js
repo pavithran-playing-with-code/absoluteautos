@@ -4,6 +4,7 @@ import Layout from "./Layout";
 import SignUp from "./SignUp";
 import SignIn from "./SignIn";
 import Home from "./Home";
+import AboutUs from "./AboutUs";
 import Profile from "./Profile";
 import FAQ from "./FAQ";
 import ContactUs from "./ContactUs";
@@ -39,6 +40,15 @@ function App() {
         element={
           <Layout>
             <Home />
+          </Layout>
+        }
+      />
+
+      <Route
+        path="/AboutUs"
+        element={
+          <Layout>
+            <AboutUs />
           </Layout>
         }
       />

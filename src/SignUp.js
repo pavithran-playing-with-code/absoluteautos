@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
 import './SignUp.css';
 
 const Signup = () => {
@@ -47,13 +48,17 @@ const Signup = () => {
 
         for (let field of requiredFields) {
             if (!formData[field.key]) {
-                alert(`${field.label} is required.`);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Field',
+                    text: `${field.label} is required.`,
+                });
+                setLoading(false);
                 return;
             }
         }
 
         try {
-            // 1. Send profile data
             const profileResponse = await fetch('http://localhost:5000/api/saveProfile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -77,13 +82,16 @@ const Signup = () => {
             const profileResult = await profileResponse.json();
 
             if (!profileResult.success) {
-                alert("Failed to save profile");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Profile Save Failed',
+                    text: 'Failed to save profile.',
+                });
                 return;
             }
 
             const profileId = profileResult.profileId;
 
-            // 2. Convert files to base64 (same as before)
             const convertToBase64 = (file) => {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -99,7 +107,6 @@ const Signup = () => {
             if (formData.nameCardFile) docs.push({ name: "NameCard", base64: await convertToBase64(formData.nameCardFile) });
             if (formData.authorizationLetter) docs.push({ name: "AuthorizationLetter", base64: await convertToBase64(formData.authorizationLetter) });
 
-            // 3. Upload documents
             const uploadResponse = await fetch('http://localhost:5000/api/uploadDocuments', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -109,11 +116,14 @@ const Signup = () => {
             const uploadResult = await uploadResponse.json();
 
             if (!uploadResult.success) {
-                alert("Failed to upload documents.");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Upload Failed',
+                    text: 'Failed to upload documents.',
+                });
                 return;
             }
 
-            // 4. Send email after successful upload
             const emailResponse = await fetch('http://localhost:5000/api/sendEmail', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -131,14 +141,22 @@ const Signup = () => {
             if (emailResult.success) {
                 setSubmitted(true); // show confirmation message
             } else {
-                alert("Failed to send email and update profile");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Email Failed',
+                    text: 'Failed to send email and update profile.',
+                });
             }
 
         } catch (error) {
             console.error("Error during registration:", error);
-            alert("Something went wrong. Please try again.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Unexpected Error',
+                text: 'Something went wrong. Please try again.',
+            });
         } finally {
-            setLoading(false); // Always reset loading state
+            setLoading(false);
         }
     };
 

@@ -1,13 +1,17 @@
+import React from "react";
+import "./Footer.css";
 import carBg from './asset/car-bg.png';
 import carImgRed from './asset/car-img-red.jpg';
 import carImgBlack from './asset/car-img-black.jpg';
 import carImgBlackSilver from './asset/car-image-blacksilver.jpg';
 import carImgSilver from './asset/car-img-silver.jpg';
-import React from "react";
-import "./Footer.css";
 
 const Footer = () => {
   const galleryImages = [carBg, carImgRed, carImgSilver, carImgBlackSilver, carImgBlack, "", ""];
+
+  // Get current date
+  const currentDate = new Date();
+  const formattedDate = `${currentDate.toLocaleDateString('en-US', { weekday: 'long' })}, ${currentDate.toLocaleDateString('en-US', { month: 'long' })} ${currentDate.getDate()}, ${currentDate.getFullYear()}`;
 
   return (
     <footer className="footer">
@@ -18,8 +22,8 @@ const Footer = () => {
           <p>
             Maecenas ne mollis orci. Phasell iacu sapie non aliquet ex euismo ac.
           </p>
-          <p>📍 Raver Croft Drive Knoxville, 37921</p>
-          <p>📞 +55 417-634-7071</p>
+          <p>📍 Pinus Softwares echankadu signal, 37921</p>
+          <p>📞 9994820468</p>
           <p>✉️ contact@auction.com</p>
         </div>
 
@@ -40,11 +44,11 @@ const Footer = () => {
           <h4>Latest News</h4>
           <div className="news-item">
             <p><strong>Hella Kogi Whatever</strong></p>
-            <small>24 Sep, 2015 | 2 comments</small>
+            <small>{formattedDate} | 2 comments</small>
           </div>
           <div className="news-item">
             <p><strong>Retro Art Party</strong></p>
-            <small>21 Sep, 2015 | 2 comments</small>
+            <small>{formattedDate}| 2 comments</small>
           </div>
         </div>
 
@@ -69,7 +73,7 @@ const Footer = () => {
 
       {/* Copyright */}
       <div className="footer-bottom">
-        <p>&copy; {new Date().getFullYear()} Auction. Developed by Robert</p>
+        <p>&copy; {new Date().getFullYear()} Auction. Developed by Robert | {formattedDate}</p>
       </div>
     </footer>
   );

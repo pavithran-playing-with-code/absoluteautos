@@ -30,7 +30,7 @@ const ContactHeader = () => {
                 <i className="fab fa-instagram social-icon"></i>
             </div>
             <div className="contact-right">
-                <span>Contact Us: 638273139</span>
+                <span>Contact Us: 9994820468</span>
                 <span className="separator"> | </span>
                 <span className="signupbtn" style={{ fontWeight: "600", cursor: "pointer" }} onClick={() => navigate('/signup')}>Sign Up Now</span>
             </div>

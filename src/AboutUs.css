@@ -1,0 +1,29 @@
+.about-container {
+    padding: 40px;
+    max-width: 900px;
+    margin: auto;
+    margin-top: 10%;
+    margin-bottom: 5%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.about-heading {
+    font-size: 32px;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.about-paragraph {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #444;
+    margin-bottom: 20px;
+}
+
+.about-paragraph strong {
+    color: #007bff;
+}

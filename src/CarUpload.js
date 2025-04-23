@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import './CarUpload.css';
 
 const CarUpload = () => {
@@ -65,7 +66,7 @@ const CarUpload = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Basic validation
+
         const requiredFields = [
             "make", "model", "purchase_year", "vin", "mileage", "car_condition",
             "transmission", "drive_type", "fuel_type", "color", "title_status",
@@ -76,48 +77,72 @@ const CarUpload = () => {
 
         for (const field of requiredFields) {
             if (!carDetails[field]) {
-                alert(`Please fill in the "${field}" field.`);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Field',
+                    text: `Please fill in the "${field}" field.`,
+                });
                 return;
             }
         }
 
-        // Check if at least one exterior and one interior photo is uploaded
         if (!carDetails.exterior_photos || carDetails.exterior_photos.length === 0) {
-            alert("Please upload at least one exterior photo.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Exterior Photo Required',
+                text: 'Please upload at least one exterior photo.',
+            });
             return;
         }
 
         if (!carDetails.interior_photos || carDetails.interior_photos.length === 0) {
-            alert("Please upload at least one interior photo.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Interior Photo Required',
+                text: 'Please upload at least one interior photo.',
+            });
             return;
         }
 
         if (!carDetails.engine_bay_photo) {
-            alert("Please upload an engine bay photo.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Engine Bay Photo Required',
+                text: 'Please upload an engine bay photo.',
+            });
             return;
         }
 
         if (!carDetails.documents || carDetails.documents.length === 0) {
-            alert("Please upload at least one vehicle document.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Documents Required',
+                text: 'Please upload at least one vehicle document.',
+            });
             return;
         }
 
-        // Validate email format (basic)
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(carDetails.contact_email)) {
-            alert("Please enter a valid email address.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Invalid Email',
+                text: 'Please enter a valid email address.',
+            });
             return;
         }
 
         if (!agreed) {
-            alert("Please agree to the Terms and Conditions before submitting.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Terms and Conditions',
+                text: 'Please agree to the Terms and Conditions before submitting.',
+            });
             return;
         }
 
-        // Proceed with the same FormData logic
         const formData = new FormData();
 
-        // Append fields
         for (const key in carDetails) {
             if (
                 key !== "exterior_photos" &&
@@ -151,7 +176,7 @@ const CarUpload = () => {
 
         const profileId = localStorage.getItem("profileId");
         if (profileId) formData.append("profile_id", profileId);
-        
+
         try {
             const response = await fetch('http://localhost:5000/api/carupload', {
                 method: 'POST',
@@ -161,13 +186,25 @@ const CarUpload = () => {
             const result = await response.json();
 
             if (result.success) {
-                alert('Car uploaded successfully!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Car uploaded successfully!',
+                });
             } else {
-                alert(`Upload failed: ${result.message}`);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Upload Failed',
+                    text: `Upload failed: ${result.message}`,
+                });
             }
         } catch (error) {
             console.error('Upload error:', error);
-            alert('An error occurred while uploading the car.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while uploading the car.',
+            });
         }
     };
 

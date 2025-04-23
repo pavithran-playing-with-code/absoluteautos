@@ -43,7 +43,7 @@ const ContactUs = () => {
                     <p><a href="mailto:info@absoluteautos.in">info@absoluteautos.in</a></p>
 
                     <h3><span role="img" aria-label="Phone">📞</span> Phone</h3>
-                    <p>+91 98765 43210</p>
+                    <p>+91 9994820468</p>
                 </div>
             </section>
         </div>
